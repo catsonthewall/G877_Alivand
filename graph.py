@@ -83,6 +83,7 @@ def preprocess_gdf(gdf, graph=Graph()):
     return graph
 
 # Graph implemented by edge list::
+class GraphFromEdgeList:
     def __init__(self):
         self.edges = []
         self.nodes = set()
