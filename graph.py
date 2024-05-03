@@ -1,4 +1,5 @@
 import geopandas as gpd
+import numpy as np
 
 
 class Node:
@@ -8,7 +9,7 @@ class Node:
         self.pos = (x, y)
         self.visited = False
 
-
+# Graph implemented by adjacency list
 class Graph:
     def __init__(self):
         self.adj = {}
@@ -27,10 +28,28 @@ class Graph:
     def adj(self, v):
         return self.adj[v]
 
+# Graph implemented by adjacency matrix
+class Graph_matrix:
+    def __init__(self):
+        self.dis_matrix= np.zeros((4965, 4956))
+        self.nodes = {}
 
-def preprocess_gdf(gdf):
+    def add_edge(self, v, w, length):
+        self.dis_matrix[v][w] = length
+        self.dis_matrix[w][v] = length
+
+    def add_node(self, node_idx, node):
+        self.nodes[node_idx] = node
+
+    def get_node(self, node_idx):
+        return self.nodes[node_idx]
+
+    def adj(self, v):
+        return self.matirx[v]
+
+
+def preprocess_gdf(gdf, graph=Graph()):
     points_dict = {}
-    graph = Graph()
     node_index = 0
 
     for idx, row in gdf.iterrows():
@@ -63,13 +82,51 @@ def preprocess_gdf(gdf):
 
     return graph
 
+# Graph implemented by edge list::
+    def __init__(self):
+        self.edges = []
+        self.nodes = set()
+
+    def add_edge(self, source, target, length):
+        self.edges.append((source, target, length))
+        self.nodes.add(source)
+        self.nodes.add(target)
+
+def preprocess_gdf_to_edge_list(gdf):
+    edge_list_graph = GraphFromEdgeList()
+
+    for idx, row in gdf.iterrows():
+        multilines = row['geometry']
+        for points in multilines.geoms:
+            xy = points.xy
+            if len(xy[0]) >= 2:  # simplify the multilines to lines
+                x1, y1 = xy[0][0], xy[1][0]
+                x2, y2 = xy[0][-1], xy[1][-1]
+
+                edge_list_graph.add_edge((x1, y1), (x2, y2), row['SHAPE_Length'])
+
+    return edge_list_graph
+
 
 if __name__ == "__main__":
-    gdf = gpd.read_file('D:\\anaconda\\envs\\NLP\\spatialalgorithm\\data\\Roads_small.gpkg')
+    gdf = gpd.read_file('../data/Roads_small.gpkg')
+    m=0
+
+    '''
+    #generate the graph stored in the adjacency list
     road_graph = preprocess_gdf(gdf)
     for v, w in road_graph.adj.items():
-        if len(w) > 2:
-            print("Node:", v, "Edges:", w)
-            node = road_graph.get_node(v)
-            print("Latitude:", node.x, "Longitude:", node.y)
-    print(road_graph.nodes[0].pos)
+        print("Node:", v, "Edges:", w)
+        node = road_graph.get_node(v)
+        print("Latitude:", node.x, "Longitude:", node.y)
+        m+=1
+    print(m)
+
+    edge_list_graph = preprocess_gdf_to_edge_list(gdf)
+    for edge in edge_list_graph.edges[:10]:
+        print("Edge:", edge)
+    '''
+
+    matrix_graph = preprocess_gdf(gdf, graph=Graph_matrix())
+    print(matrix_graph.dis_matrix)
+    print(matrix_graph.nodes[0].pos)
