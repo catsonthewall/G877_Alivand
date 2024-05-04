@@ -1,3 +1,0 @@
-#djhf
-print("Hello World")
-
