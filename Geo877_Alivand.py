@@ -1,4 +1,4 @@
-# Geo877 Spatial Algorithms - Group Alivand 
+# Geo877 Spatial Algorithms - Group Alivand: Extracting Scenic Routes from VGI Data Sources 
 
 # Use this python file for all the "background" code of the project such as functions and classes.
 
