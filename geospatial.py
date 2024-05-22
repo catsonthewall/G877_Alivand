@@ -2,8 +2,6 @@
 
 from numpy import sqrt, argmin
 
-#from numpy import sqrt
-
 class Point():
     # initialise
     def __init__(self, x=None, y=None, cat=None):
