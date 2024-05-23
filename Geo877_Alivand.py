@@ -7,6 +7,22 @@ import geopandas as gpd
 import numpy as np
 
 class dfs:
+
+    @staticmethod
+    def dfs_component(graph, node, component):
+        # Add the current node to the component
+        component.add(node)
+        print(node)
+
+        # Iterate over all neighbors of the current node
+        for neighbor in graph.adj[node]:
+            print(neighbor[0])
+            # If the neighbor is not already in the component
+            if neighbor[0] not in component:
+                # Recursively perform DFS on the neighbor
+                dfs.dfs_component(graph, neighbor[0], component)
+    
+    @staticmethod
     def find_connected_components(graph):
         # Initialize a set to keep track of visited nodes
         visited = set()
@@ -20,7 +36,7 @@ class dfs:
                 # Initialize a new component set
                 component = set()
                 # Perform a depth-first search to find all nodes in this component
-                dfs_component(graph, node, component)
+                dfs.dfs_component(graph, node, component)
                 # Add the discovered component to the list of components
                 components.append(component)
                 # Mark all nodes in this component as visited
@@ -29,23 +45,12 @@ class dfs:
         # Return the list of connected components
         return components
 
-    def dfs_component(graph, node, component):
-        # Add the current node to the component
-        component.add(node)
-        print(node)
-
-        # Iterate over all neighbors of the current node
-        for neighbor in graph.adj[node]:
-            print(neighbor[0])
-            # If the neighbor is not already in the component
-            if neighbor[0] not in component:
-                # Recursively perform DFS on the neighbor
-                dfs_component(graph, neighbor[0], component)
-
+    @staticmethod
     def get_largest_component(components):
         # Return the largest component by length
         return max(components, key=len)
 
+    @staticmethod
     def filter_graph(components, largest_component, gdf):
         # Initialize a list to store nodes to remove
         nodes_to_remove = []
