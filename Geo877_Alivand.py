@@ -486,7 +486,8 @@ def preprocess_gdf_to_edge_list(gdf):
 
 
 if __name__ == "__main__":
-    gdf = gpd.read_file('../data/Roads_small.gpkg')
+    #gdf = gpd.read_file('../data/Roads_small.gpkg')
+    gdf = gpd.read_file('/Users/baoyuliu/Documents/GitHub/G877_Alivand/Roads_small.gpkg')
     m=0
 
     '''
