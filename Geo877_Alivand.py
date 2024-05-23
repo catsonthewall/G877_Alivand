@@ -6,82 +6,84 @@
 import geopandas as gpd
 import numpy as np
 
-def find_connected_components(graph):
-    # Initialize a set to keep track of visited nodes
-    visited = set()
-    # Initialize a list to store the connected components
-    components = []
-    
-    # Iterate over each node in the graph
-    for node in range(len(graph.nodes)):
-        # If the node has not been visited
-        if node not in visited:
-            # Initialize a new component set
-            component = set()
-            # Perform a depth-first search to find all nodes in this component
-            dfs_component(graph, node, component)
-            # Add the discovered component to the list of components
-            components.append(component)
-            # Mark all nodes in this component as visited
-            visited.update(component)
-    
-    # Return the list of connected components
-    return components
+class dfs:
+    def find_connected_components(graph):
+        # Initialize a set to keep track of visited nodes
+        visited = set()
+        # Initialize a list to store the connected components
+        components = []
 
-def dfs_component(graph, node, component):
-    # Add the current node to the component
-    component.add(node)
-    print(node)
-    
-    # Iterate over all neighbors of the current node
-    for neighbor in graph.adj[node]:
-        print(neighbor[0])
-        # If the neighbor is not already in the component
-        if neighbor[0] not in component:
-            # Recursively perform DFS on the neighbor
-            dfs_component(graph, neighbor[0], component)
+        # Iterate over each node in the graph
+        for node in range(len(graph.nodes)):
+            # If the node has not been visited
+            if node not in visited:
+                # Initialize a new component set
+                component = set()
+                # Perform a depth-first search to find all nodes in this component
+                dfs_component(graph, node, component)
+                # Add the discovered component to the list of components
+                components.append(component)
+                # Mark all nodes in this component as visited
+                visited.update(component)
 
-def get_largest_component(components):
-    # Return the largest component by length
-    return max(components, key=len)
+        # Return the list of connected components
+        return components
 
-def filter_graph(components, largest_component, gdf):
-    # Initialize a list to store nodes to remove
-    nodes_to_remove = []
-    
-    # Iterate over each subgraph in the components list
-    for subgraph in components:
-        # If the subgraph is not the largest component
-        if subgraph != largest_component:
-            # Add the subgraph to the nodes to remove list
-            nodes_to_remove.append(subgraph)
-    
-    # Flatten the list of nodes to remove
-    delete_list = [item for subset in nodes_to_remove for item in subset]
+    def dfs_component(graph, node, component):
+        # Add the current node to the component
+        component.add(node)
+        print(node)
 
-    # Iterate over each row in the GeoDataFrame
-    for idx, row in gdf.iterrows():
-        # Get the geometry (MultiLineString) of the current row
-        multilines = row['geometry']
-        # Iterate over each line (LineString) in the MultiLineString
-        for points in multilines.geoms:
-            # Get the start and end points of the line
-            xy = points.xy
-            x1, y1 = xy[0][0], xy[1][0]
-            x2, y2 = xy[0][-1], xy[1][-1]
-            # Check if either end of the line is a node in the delete list
-            for node in delete_list:
-                if (x1, y1) == graph.get_node(node).pos or (x2, y2) == graph.get_node(node).pos:
-                    # If so, drop the row from the GeoDataFrame
-                    gdf.drop(idx, inplace=True)
-                    break
+        # Iterate over all neighbors of the current node
+        for neighbor in graph.adj[node]:
+            print(neighbor[0])
+            # If the neighbor is not already in the component
+            if neighbor[0] not in component:
+                # Recursively perform DFS on the neighbor
+                dfs_component(graph, neighbor[0], component)
 
-    # Reset the index of the GeoDataFrame after dropping rows
-    gdf.reset_index(drop=True, inplace=True)
-    # Define the output file path
-    output_file = '../data/clean_graph.gpkg'
-    # Save the filtered GeoDataFrame to a file in GeoPackage format
-    gdf.to_file(output_file, driver='GPKG')
+    def get_largest_component(components):
+        # Return the largest component by length
+        return max(components, key=len)
+
+    def filter_graph(components, largest_component, gdf):
+        # Initialize a list to store nodes to remove
+        nodes_to_remove = []
+
+        # Iterate over each subgraph in the components list
+        for subgraph in components:
+            # If the subgraph is not the largest component
+            if subgraph != largest_component:
+                # Add the subgraph to the nodes to remove list
+                nodes_to_remove.append(subgraph)
+
+        # Flatten the list of nodes to remove
+        delete_list = [item for subset in nodes_to_remove for item in subset]
+
+        # Iterate over each row in the GeoDataFrame
+        for idx, row in gdf.iterrows():
+            # Get the geometry (MultiLineString) of the current row
+            multilines = row['geometry']
+            # Iterate over each line (LineString) in the MultiLineString
+            for points in multilines.geoms:
+                # Get the start and end points of the line
+                xy = points.xy
+                x1, y1 = xy[0][0], xy[1][0]
+                x2, y2 = xy[0][-1], xy[1][-1]
+                # Check if either end of the line is a node in the delete list
+                for node in delete_list:
+                    if (x1, y1) == graph.get_node(node).pos or (x2, y2) == graph.get_node(node).pos:
+                        # If so, drop the row from the GeoDataFrame
+                        gdf.drop(idx, inplace=True)
+                        break
+
+        # Reset the index of the GeoDataFrame after dropping rows
+        gdf.reset_index(drop=True, inplace=True)
+        # Define the output file path
+        output_file = '../data/clean_graph.gpkg'
+        # Save the filtered GeoDataFrame to a file in GeoPackage format
+        gdf.to_file(output_file, driver='GPKG')
+
 
 def explore_node(graph, node_idx, mitnodes, pointslist, linklist):
     # Remove the current node from mitnodes
