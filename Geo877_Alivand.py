@@ -85,131 +85,123 @@ class dfs:
         gdf.to_file(output_file, driver='GPKG')
 
 
-def explore_node(graph, node_idx, mitnodes, pointslist, linklist):
-    # Remove the current node from mitnodes
-    mitnodes.remove(node_idx)
-    # Mark the current node as visited
-    graph.get_node(node_idx).visited = True
-    # Add the current node to pointslist
-    pointslist.append(node_idx)
+class MergeMitnodes:
+    @staticmethod
+    def explore_node(graph, node_idx, mitnodes, pointslist, linklist):
+        # Remove the current node from mitnodes
+        mitnodes.remove(node_idx)
+        # Mark the current node as visited
+        graph.get_node(node_idx).visited = True
+        # Add the current node to pointslist
+        pointslist.append(node_idx)
 
-    # Explore neighbors of the current node
-    for edge in graph.adj[node_idx]:
-        neighbor_idx = edge[0]
-        if neighbor_idx in mitnodes:
-            # Add the neighbor to linklist and recursively explore it
-            linklist.append(neighbor_idx)
-            explore_node(graph, neighbor_idx, mitnodes, pointslist, linklist)
+        # Explore neighbors of the current node
+        for edge in graph.adj[node_idx]:
+            neighbor_idx = edge[0]
+            if neighbor_idx in mitnodes:
+                linklist.append(neighbor_idx)
+                MergeMitnodes.explore_node(graph, neighbor_idx, mitnodes, pointslist, linklist)
 
-def combine_mitnodes(graph, mitnodes):
-    # While there are still nodes to process in mitnodes
-    while mitnodes:
-        # Get the next node to process
-        node_idx = mitnodes.pop(0)
-        pointslist = []
-        priority_queue = []
-        linklist = []
-        # Explore the current node and its neighbors
-        explore_node(graph, node_idx, mitnodes, pointslist, linklist)
-        # Print the pointslist for debugging or further processing
-        print(pointslist)
+    def combine_mitnodes(graph, mitnodes):
+        while mitnodes:
+            node_idx = mitnodes.pop(0)
+            pointslist = []
+            linklist = []
+            MergeMitnodes.explore_node(graph, node_idx, mitnodes, pointslist, linklist)
+            print(pointslist)
 
-def visit_node(graph, mitnodes, node_idx):
-    # If the node is not in mitnodes, return
-    if node_idx not in mitnodes:
-        return
-    # Remove the node from mitnodes and add to pointslist
-    mitnodes.remove(node_idx)
-    pointslist.append(node_idx)
+    def visit_node(graph, mitnodes, node_idx):
+        if node_idx not in mitnodes:
+            return
+        mitnodes.remove(node_idx)
+        pointslist.append(node_idx)
 
-    # Explore neighbors of the node
-    for edge in graph.adj[node_idx]:
-        if edge[0] not in pointslist:  # Check to avoid re-visiting nodes
-            pointslist.append(edge[0])
-            # Recursively visit the neighbor node
-            visit_node(graph, mitnodes, edge[0])
+        for edge in graph.adj[node_idx]:
+            if edge[0] not in pointslist:  # Add this check
+                pointslist.append(edge[0])
+                MergeMitnodes.visit_node(graph, mitnodes, edge[0])
 
-# Function to find the MultiLineString between two nodes
-def find_multilinestring(graph, node1, node2, gdf):
-    for idx, row in gdf.iterrows():
-        multilines = row['geometry']
-        length = row['SHAPE_Length']
-        for points in multilines.geoms:
-            xy = points.xy
-            # Check if the start and end points of the multilinestring match the positions of node1 and node2
-            if ((graph.get_node(node1).pos == (xy[0][0], xy[1][0]) or graph.get_node(node1).pos == (xy[0][-1], xy[1][-1])) and
-                    (graph.get_node(node2).pos == (xy[0][0], xy[1][0]) or graph.get_node(node2).pos == (xy[0][-1], xy[1][-1]))):
-                return multilines, idx, length
-    return None, None, None
+    # Function to find the multilinestring between two nodes
+    def find_multilinestring(graph, node1, node2, gdf):
+        for idx, row in gdf.iterrows():
+            multilines = row['geometry']
+            length = row['SHAPE_Length']
+            for points in multilines.geoms:
+                xy = points.xy
+                # Check if the start and end points of the multilinestring match the positions of node1 and node2
+                if ((graph.get_node(node1).pos == (xy[0][0], xy[1][0]) or graph.get_node(node1).pos == (
+                    xy[0][-1], xy[1][-1])) and
+                        (graph.get_node(node2).pos == (xy[0][0], xy[1][0]) or graph.get_node(node2).pos == (
+                        xy[0][-1], xy[1][-1]))):
+                    return multilines, idx, length
+        return None, None, None
 
-def merge_multilinestrings(geometries):
-    # Merge each MultiLineString
-    geom1 = geometries.pop(0)
+    def merge_multilinestrings(geometries):
+        # Loop to merge each multilinestring
+        geom1 = geometries.pop(0)
 
-    while len(geometries) > 0:
-        # Flag to indicate if a connection is found
-        found_connection = False
+        while len(geometries) > 0:
+            # Flag to indicate whether a connected multilinestring was found
+            found_connection = False
 
-        # Try to find a connected MultiLineString from the remaining geometries
-        for m, geom2 in enumerate(geometries):
-            for line1, line2 in zip(geom1.geoms, geom2.geoms):
-                startpoint1 = line1.xy[0][0], line1.xy[1][0]
-                startpoint2 = line2.xy[0][0], line2.xy[1][0]
-                endpoint1 = line1.xy[0][-1], line1.xy[1][-1]
-                endpoint2 = line2.xy[0][-1], line2.xy[1][-1]
-                pointslist = []
+            # Attempt to find a multilinestring among the remaining ones that connects to the start or end of the current one
+            for m, geom2 in enumerate(geometries):
+                for line1, line2 in zip(geom1.geoms, geom2.geoms):
+                    startpoint1 = line1.xy[0][0], line1.xy[1][0]
+                    startpoint2 = line2.xy[0][0], line2.xy[1][0]
+                    endpoint1 = line1.xy[0][-1], line1.xy[1][-1]
+                    endpoint2 = line2.xy[0][-1], line2.xy[1][-1]
+                    pointslist = []
 
-                # Check if the start or end points of the lines are connected
-                if startpoint1 == startpoint2:
-                    for i in range(1, len(line2.xy[0])):
-                        pointslist.append(Point(line2.xy[0][-i], line2.xy[1][-i]))
-                    for i in range(len(line1.xy[0])):
-                        pointslist.append(Point(line1.xy[0][i], line1.xy[1][i]))
-                    linestring = LineString(pointslist)
-                    multilinestring = MultiLineString([linestring])
-                    geom1 = multilinestring
-                    geometries.pop(m)
-                    found_connection = True
-                    break
-                elif startpoint1 == endpoint2:
-                    for i in range(len(line2.xy[0])):
-                        pointslist.append(Point(line2.xy[0][i], line2.xy[1][i]))
-                    for i in range(1, len(line1.xy[0])):
-                        pointslist.append(Point(line1.xy[0][i], line1.xy[1][i]))
-                    linestring = LineString(pointslist)
-                    multilinestring = MultiLineString([linestring])
-                    geom1 = multilinestring
-                    geometries.pop(m)
-                    found_connection = True
-                    break
-                elif endpoint1 == startpoint2:
-                    for i in range(len(line1.xy[0])):
-                        pointslist.append(Point(line1.xy[0][i], line1.xy[1][i]))
-                    for i in range(1, len(line2.xy[0])):
-                        pointslist.append(Point(line2.xy[0][i], line2.xy[1][i]))
-                    linestring = LineString(pointslist)
-                    multilinestring = MultiLineString([linestring])
-                    geom1 = multilinestring
-                    geometries.pop(m)
-                    found_connection = True
-                    break
-                elif endpoint1 == endpoint2:
-                    for i in range(len(line1.xy[0])):
-                        pointslist.append(Point(line1.xy[0][i], line1.xy[1][i]))
-                    for i in range(2, len(line2.xy[0]) + 1):
-                        pointslist.append(Point(line2.xy[0][-i], line2.xy[1][-i]))
-                    linestring = LineString(pointslist)
-                    multilinestring = MultiLineString([linestring])
-                    geom1 = multilinestring
-                    geometries.pop(m)
-                    found_connection = True
-                    break
+                    if startpoint1 == startpoint2:
+                        for i in range(1, len(line2.xy[0])):
+                            pointslist.append(Point(line2.xy[0][-i], line2.xy[1][-i]))
+                        for i in range(len(line1.xy[0])):
+                            pointslist.append(Point(line1.xy[0][i], line1.xy[1][i]))
+                        linestring = LineString(pointslist)
+                        multilinestring = MultiLineString([linestring])
+                        geom1 = multilinestring
+                        geometries.pop(m)
+                        found_connection = True
+                        break
+                    elif startpoint1 == endpoint2:
+                        for i in range(len(line2.xy[0])):
+                            pointslist.append(Point(line2.xy[0][i], line2.xy[1][i]))
+                        for i in range(1, len(line1.xy[0])):
+                            pointslist.append(Point(line1.xy[0][i], line1.xy[1][i]))
+                        linestring = LineString(pointslist)
+                        multilinestring = MultiLineString([linestring])
+                        geom1 = multilinestring
+                        geometries.pop(m)
+                        found_connection = True
+                        break
+                    elif endpoint1 == startpoint2:
+                        for i in range(len(line1.xy[0])):
+                            pointslist.append(Point(line1.xy[0][i], line1.xy[1][i]))
+                        for i in range(1, len(line2.xy[0])):
+                            pointslist.append(Point(line2.xy[0][i], line2.xy[1][i]))
+                        linestring = LineString(pointslist)
+                        multilinestring = MultiLineString([linestring])
+                        geom1 = multilinestring
+                        geometries.pop(m)
+                        found_connection = True
+                        break
+                    elif endpoint1 == endpoint2:
+                        for i in range(len(line1.xy[0])):
+                            pointslist.append(Point(line1.xy[0][i], line1.xy[1][i]))
+                        for i in range(2, len(line2.xy[0]) + 1):
+                            pointslist.append(Point(line2.xy[0][-i], line2.xy[1][-i]))
+                        linestring = LineString(pointslist)
+                        multilinestring = MultiLineString([linestring])
+                        geom1 = multilinestring
+                        geometries.pop(m)
+                        found_connection = True
+                        break
 
-        # If no connection is found, break out of the loop
-        if not found_connection:
-            break
+            if not found_connection:
+                break
 
-    return geom1
+        return geom1
 
 class Node:
     def __init__(self, x, y):
