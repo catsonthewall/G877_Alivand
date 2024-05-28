@@ -522,6 +522,67 @@ if __name__ == "__main__":
     gdf.plot(ax=ax)
     plt.show()
 
+# A* Algorithm
+# 
+class PriorityQueue:
+    def __init__(self):
+        self.elements = []
+
+    def is_empty(self):
+        return len(self.elements) == 0
+
+    def put(self, item, priority):
+        self.elements.append((priority, item))
+        self.elements.sort(key=lambda x: x[0])
+
+    def get(self):
+        return self.elements.pop(0)[1] 
+        
+class AStar:
+    def __init__(self, graph, heuristic):
+        self.graph = graph
+        self.heuristic = heuristic
+    
+    def find_path(self, start, goal):
+        open_list = PriorityQueue()
+        open_list.put((0, start))
+        came_from = {}
+        g_score = {node: float('inf') for node in self.graph}
+        g_score[start] = 0
+        f_score = {node: float('inf') for node in self.graph}
+        f_score[start] = self.heuristic(start, goal)
+        
+        while not open_list.empty():
+            _, current = open_list.get()
+            
+            if current == goal:
+                path = []
+                while current in came_from:
+                    path.append(current)
+                    current = came_from[current]
+                path.append(start)
+                return path[::-1]
+            
+            for neighbor, cost in self.graph[current].items():
+                tentative_g_score = g_score[current] + cost
+                if tentative_g_score < g_score[neighbor]:
+                    came_from[neighbor] = current
+                    g_score[neighbor] = tentative_g_score
+                    f_score[neighbor] = tentative_g_score + self.heuristic(neighbor, goal)
+                    open_list.put((f_score[neighbor], neighbor))
+        
+        return None
+        
+def heuristic(a, b):
+    return abs(int(a) - int(b)) 
+
+## Converts our graph representation into a new format 
+## neighbors are represented as keys, the costs are preserved.
+def convert_graph(graph):
+    new_graph = {}
+    for node, neighbors in graph.items():
+        new_graph[node] = {neighbor: cost for neighbor, cost in neighbors}
+    return new_graph
 # Point class for scenicness scoring
 
 class Point():
