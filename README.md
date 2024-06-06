@@ -14,3 +14,5 @@ This is a draft (proposal)...
 
 Network usage instructions:
 In the process of creating the graph, we utilize three methods: adjacency list, edge list, and adjacent matrix. As Ross mentioned, if we have additional time later, we can conduct experiments to test these different methods, which will serve as a significant milestone for us. Now, you can choose one method you prefer.
+
+I have organized the contents of the GitHub repository and moved all the old files to the "interm files" folder. Everyone can now organize the code in the "geo877" folder. 
